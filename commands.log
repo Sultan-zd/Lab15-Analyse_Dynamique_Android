@@ -1,0 +1,72 @@
+============================================================
+  LOG CHRONOLOGIQUE DES COMMANDES — Lab 15
+  Analyse Dynamique Android : Inspection TLS/HTTPS & SSL Pinning
+============================================================
+
+# ─── ÉTAPE 0 : Vérifications rapides ────────────────────
+python --version                                           # Python 3.11.x
+pip --version                                              # pip 24.x
+adb version                                                # 1.0.41
+
+# ─── ÉTAPE 1 : Installation Frida (PC) ──────────────────
+python -m pip install --upgrade frida frida-tools
+frida --version                                            # 16.5.9
+python -c "import frida; print(frida.__version__)"         # 16.5.9
+
+# ─── ÉTAPE 1.2 : ADB et appareil ────────────────────────
+adb devices                                                # → <serial> device
+adb shell getprop ro.product.cpu.abi                       # → arm64-v8a
+
+# ─── ÉTAPE 1.3 : frida-server (Android) ─────────────────
+adb push frida-server-16.5.9-android-arm64 /data/local/tmp/frida-server
+adb shell chmod 755 /data/local/tmp/frida-server
+adb shell "/data/local/tmp/frida-server -l 0.0.0.0 &"
+adb forward tcp:27042 tcp:27042
+adb forward tcp:27043 tcp:27043
+frida-ps -Uai                                             # → liste apps
+
+# ─── ÉTAPE 2 : Proxy TLS (Burp / mitmproxy) ─────────────
+# Burp : Proxy > Options > 127.0.0.1:8080
+# mitmproxy :
+mitmproxy -p 8080
+
+# Installation CA sur appareil :
+# Naviguer vers http://burp ou http://mitm.it
+# Installer certificat CA utilisateur
+
+# Redirection trafic :
+adb reverse tcp:8080 tcp:8080
+# OU : Wi-Fi proxy → <IP_PC>:8080
+
+# ─── ÉTAPE 3 : Identification de l'app cible ────────────
+frida-ps -Uai | Select-String -Pattern "ssl,okhttp,https"
+# → com.example.app (exemple)
+
+# ─── ÉTAPE 4 : Script universel SSL bypass (Java) ───────
+frida -U -f com.example.app -l sslpin_bypass_universal.js --no-pause
+# Logs attendus : [+] SSL bypass: SSLContext.init patched
+#                 [+] SSL bypass: okhttp3.CertificatePinner.check skip
+
+# ─── ÉTAPE 5 : Variantes spécifiques ────────────────────
+# OkHttp uniquement :
+frida -U -f com.example.app -l okhttp_bypass.js --no-pause
+
+# WebView uniquement :
+frida -U -f com.example.app -l webview_bypass.js --no-pause
+
+# ─── ÉTAPE 6 : Bypass natif (BoringSSL/OpenSSL) ─────────
+frida-trace -U -i SSL_* -i X509_* com.example.app
+frida -U -f com.example.app -l sslpin_bypass_universal.js -l sslpin_bypass_native.js --no-pause
+
+# ─── ÉTAPE 7 : Objection bypass ─────────────────────────
+pip install --upgrade objection
+objection -g com.example.app explore --startup-command "android sslpinning disable"
+
+# ─── ÉTAPE 7 : Validation ───────────────────────────────
+# Proxy : vérifier les requêtes HTTPS en clair (URL + headers + body)
+# Frida : observer les logs [+] SSL bypass: ...
+
+# ─── NETTOYAGE ───────────────────────────────────────────
+adb shell "kill $(pidof frida-server)"
+# Retirer le certificat CA de l'appareil
+# Désactiver le débogage USB

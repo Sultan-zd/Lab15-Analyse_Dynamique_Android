@@ -1,0 +1,33 @@
+============================================================
+  MÉTADONNÉES DE TRAÇABILITÉ — Lab 15
+============================================================
+
+Analyste       : Étudiant Sécurité
+Cours          : Sécurité Mobile — Lab 15
+Sujet          : Analyse Dynamique Android — Inspection TLS/HTTPS & SSL Pinning
+Date           : 2026-06-08
+Durée estimée  : 3h30
+Outils         : Frida 16.5.9 · Objection 1.11.0 · Burp Suite / mitmproxy · ADB
+Cible          : Application Android avec SSL Pinning (OkHttp/Conscrypt/WebView)
+Appareil       : Android 8+ (Débogage USB activé)
+Référentiel    : OWASP MASVS v2.0 / MASTG — MASVS-NETWORK
+Statut         : ✅ Complété
+
+============================================================
+  PÉRIMÈTRE
+============================================================
+- Uniquement sur appareils/applications contrôlés
+- Cadre pédagogique et défensif
+- Aucune donnée réelle exposée
+- Certificat CA et frida-server retirés après tests
+
+============================================================
+  VERSIONS
+============================================================
+Python         : 3.11.x
+Frida (client) : 16.5.9
+frida-server   : 16.5.9 (android-arm64)
+Objection      : 1.11.0
+Burp Suite     : Community/Pro (dernière version)
+mitmproxy      : 10.x
+ADB            : 1.0.41
